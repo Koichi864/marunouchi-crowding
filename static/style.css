@@ -94,7 +94,7 @@ html, body {
 #legend {
   position: fixed;
   left: 10px;
-  top: calc(var(--header-h) + 10px);
+  bottom: calc(var(--sheet-peek) + 12px); /* 常にシートの上に表示 */
   background: rgba(255,255,255,0.93);
   backdrop-filter: blur(6px);
   -webkit-backdrop-filter: blur(6px);
@@ -508,6 +508,8 @@ html, body {
   }
   #legend {
     left: 400px;
+    bottom: auto;
+    top: calc(var(--header-h) + 10px);
   }
   .leaflet-control-zoom {
     right: 10px !important;

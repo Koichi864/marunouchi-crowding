@@ -53,6 +53,8 @@ const sheetHandle = document.getElementById("sheet-handle");
 function setSheetState(expanded) {
   sheetExpanded = expanded;
   sheet.classList.toggle("expanded", expanded);
+  // リスト表示中は凡例を隠す（地図表示中だけ凡例が必要）
+  document.getElementById("legend").classList.toggle("hidden", expanded);
 }
 
 // タップでトグル
