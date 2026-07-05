@@ -283,7 +283,8 @@ html, body {
 
 .r-crowd-bar {
   width: 4px;
-  height: 40px;
+  min-height: 40px;
+  align-self: stretch;
   border-radius: 2px;
   flex-shrink: 0;
 }
@@ -297,9 +298,11 @@ html, body {
   font-size: 0.92rem;
   font-weight: 600;
   color: var(--clr-text);
-  white-space: nowrap;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
   overflow: hidden;
-  text-overflow: ellipsis;
+  line-height: 1.35;
 }
 
 .r-meta {

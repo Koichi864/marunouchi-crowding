@@ -1,8 +1,8 @@
 "use strict";
 
 // ── 定数 ──────────────────────────────────────────────────
-const CENTER = [35.681, 139.764];  // 丸の内エリア中心
-const DEFAULT_ZOOM = 16;
+const CENTER = [35.678, 139.760];  // 東京駅〜霞が関エリア中心
+const DEFAULT_ZOOM = 15;
 const AUTO_REFRESH_MS = 5 * 60 * 1000;  // 5分ごとに混雑度更新
 
 const CONGESTION_COLORS = {
@@ -92,24 +92,73 @@ function makeMarkerIcon(level) {
   });
 }
 
+// ── 検索エイリアス（通称・略称 → 正式名称） ───────────────
+const SEARCH_ALIASES = {
+  "スタバ":      "スターバックス",
+  "すたば":      "スターバックス",
+  "すたー":      "スターバックス",
+  "すたばっ":    "スターバックス",
+  "starbucks":   "スターバックス",
+  "マック":      "マクドナルド",
+  "まっく":      "マクドナルド",
+  "mcd":         "マクドナルド",
+  "mcdonald":    "マクドナルド",
+  "ケンタ":      "ケンタッキー",
+  "けんた":      "ケンタッキー",
+  "kfc":         "ケンタッキー",
+  "モスバ":      "モスバーガー",
+  "もすば":      "モスバーガー",
+  "ミスド":      "ミスタードーナツ",
+  "みすど":      "ミスタードーナツ",
+  "サイゼ":      "サイゼリヤ",
+  "さいぜ":      "サイゼリヤ",
+  "デニズ":      "デニーズ",
+  "でにず":      "デニーズ",
+  "ガスト":      "ガスト",
+  "すき家":      "すき家",
+  "吉野家":      "吉野家",
+  "松屋":        "松屋",
+};
+
+function resolveAliases(q) {
+  const results = new Set([q]);
+  if (q.length < 2) return [q];
+  for (const [alias, target] of Object.entries(SEARCH_ALIASES)) {
+    if (alias.startsWith(q) || q.startsWith(alias) || q === alias) {
+      results.add(target.toLowerCase());
+    }
+  }
+  return [...results];
+}
+
 // ── フィルタリング ─────────────────────────────────────────
 function filtered() {
+  const queries = resolveAliases(searchQuery);
+
   return allRestaurants
     .filter(r => {
       if (activeType !== "all") {
         if (activeType === "bar") {
           if (r.amenity !== "bar" && r.amenity !== "pub") return false;
+        } else if (activeType === "cafe") {
+          if (!["cafe","coffee","tea","ice_cream","juice_bar"].includes(r.amenity)) return false;
+        } else if (activeType === "bakery") {
+          if (!["bakery","confectionery","deli","snack_bar"].includes(r.amenity)) return false;
         } else {
           if (r.amenity !== activeType) return false;
         }
       }
       if (activeCrowd !== "all" && congestionMap[r.id] !== activeCrowd) return false;
       if (searchQuery) {
-        const q = searchQuery;
-        const inName = r.name.toLowerCase().includes(q);
-        const inNameEn = (r.name_en || "").toLowerCase().includes(q);
-        const inCuisine = (r.cuisine || "").toLowerCase().includes(q);
-        if (!inName && !inNameEn && !inCuisine) return false;
+        const nameLower     = r.name.toLowerCase();
+        const nameEnLower   = (r.name_en || "").toLowerCase();
+        const cuisineLower  = (r.cuisine || "").toLowerCase();
+        const amenityLower  = (r.amenity_label || "").toLowerCase();
+        const matches = queries.some(q =>
+          nameLower.includes(q) || nameEnLower.includes(q) ||
+          cuisineLower.includes(q) || amenityLower.includes(q)
+        );
+        if (!matches) return false;
       }
       return true;
     })

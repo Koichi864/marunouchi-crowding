@@ -15,26 +15,40 @@ app = Flask(__name__)
 CACHE_FILE = Path(__file__).parent / "data_cache.json"
 CACHE_TTL = 3600  # 1 hour
 
-# 丸の内エリアのバウンディングボックス (south,west,north,east)
-AREA_BBOX = "35.674,139.753,35.693,139.779"
+# 東京駅〜霞が関エリアのバウンディングボックス (south,west,north,east)
+AREA_BBOX = "35.663,139.742,35.696,139.782"
 
 OVERPASS_URL = "https://overpass-api.de/api/interpreter"
 
-OVERPASS_QUERY = f"""[out:json][timeout:30];
+AMENITY_TYPES = "restaurant|cafe|fast_food|bar|pub|food_court|ice_cream|juice_bar|snack_bar"
+SHOP_TYPES    = "bakery|coffee|deli|confectionery|tea"
+
+OVERPASS_QUERY = f"""[out:json][timeout:60];
 (
-  node["amenity"~"restaurant|cafe|fast_food|bar|pub|food_court"]["name"]({AREA_BBOX});
-  way["amenity"~"restaurant|cafe|fast_food|bar|pub|food_court"]["name"]({AREA_BBOX});
+  node["amenity"~"{AMENITY_TYPES}"]["name"]({AREA_BBOX});
+  way["amenity"~"{AMENITY_TYPES}"]["name"]({AREA_BBOX});
+  relation["amenity"~"{AMENITY_TYPES}"]["name"]({AREA_BBOX});
+  node["shop"~"{SHOP_TYPES}"]["name"]({AREA_BBOX});
+  way["shop"~"{SHOP_TYPES}"]["name"]({AREA_BBOX});
 );
 out center;
 """
 
 AMENITY_LABELS = {
-    "restaurant": "レストラン",
-    "cafe":       "カフェ",
-    "fast_food":  "ファストフード",
-    "bar":        "バー",
-    "pub":        "パブ",
-    "food_court": "フードコート",
+    "restaurant":    "レストラン",
+    "cafe":          "カフェ",
+    "fast_food":     "ファストフード",
+    "bar":           "バー",
+    "pub":           "パブ",
+    "food_court":    "フードコート",
+    "ice_cream":     "アイスクリーム",
+    "juice_bar":     "ジュースバー",
+    "snack_bar":     "スナック",
+    "bakery":        "ベーカリー",
+    "coffee":        "コーヒー",
+    "deli":          "デリ",
+    "confectionery": "菓子店",
+    "tea":           "ティー",
 }
 
 CONGESTION_LABELS = {
@@ -54,7 +68,7 @@ def fetch_from_overpass():
         OVERPASS_URL,
         data={"data": OVERPASS_QUERY},
         headers=HEADERS,
-        timeout=35,
+        timeout=65,
         verify=False,
     )
     resp.raise_for_status()
@@ -68,7 +82,7 @@ def fetch_from_overpass():
         if not lat or not lon:
             continue
 
-        amenity = tags.get("amenity", "")
+        amenity = tags.get("amenity") or tags.get("shop", "")
         restaurants.append({
             "id":          el.get("id"),
             "name":        tags.get("name", "名称不明"),
