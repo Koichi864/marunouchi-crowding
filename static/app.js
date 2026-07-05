@@ -24,6 +24,17 @@ const CONGESTION_LABELS = {
 const CONGESTION_ORDER = ["empty", "quiet", "normal", "busy", "very_busy"];
 const LEVEL_DOTS = { empty: 0, quiet: 1, normal: 2, busy: 4, very_busy: 5 };
 
+// ── エリア定義（緯度経度のバウンディングボックス） ──────────
+const AREAS = {
+  "丸の内": { s: 35.675, w: 139.753, n: 35.692, e: 139.768 },
+  "大手町": { s: 35.682, w: 139.757, n: 35.696, e: 139.775 },
+  "八重洲": { s: 35.673, w: 139.767, n: 35.690, e: 139.782 },
+  "有楽町": { s: 35.669, w: 139.756, n: 35.678, e: 139.767 },
+  "日比谷": { s: 35.667, w: 139.750, n: 35.678, e: 139.762 },
+  "霞が関": { s: 35.663, w: 139.742, n: 35.678, e: 139.756 },
+  "新橋":   { s: 35.662, w: 139.753, n: 35.671, e: 139.771 },
+};
+
 // ── 状態 ──────────────────────────────────────────────────
 let allRestaurants = [];
 let congestionMap = {};   // { restaurantId: level }
@@ -31,6 +42,7 @@ let markers = {};         // { restaurantId: L.Marker }
 let sheetExpanded = false;
 let activeType = "all";
 let activeCrowd = "all";
+let activeArea = "all";
 let searchQuery = "";
 
 // ── 地図初期化 ────────────────────────────────────────────
@@ -139,6 +151,13 @@ function filtered() {
 
   return allRestaurants
     .filter(r => {
+      // エリアフィルター
+      if (activeArea !== "all") {
+        const bbox = AREAS[activeArea];
+        if (bbox && !(r.lat >= bbox.s && r.lat <= bbox.n && r.lon >= bbox.w && r.lon <= bbox.e)) {
+          return false;
+        }
+      }
       if (activeType !== "all") {
         if (activeType === "bar") {
           if (r.amenity !== "bar" && r.amenity !== "pub") return false;
@@ -336,6 +355,21 @@ document.getElementById("search-input").addEventListener("input", e => {
   searchQuery = e.target.value.toLowerCase().trim();
   renderMarkers();
   renderList();
+});
+
+document.querySelectorAll(".area-btn").forEach(btn => {
+  btn.addEventListener("click", () => {
+    document.querySelectorAll(".area-btn").forEach(b => b.classList.remove("active"));
+    btn.classList.add("active");
+    activeArea = btn.dataset.area;
+    renderMarkers();
+    renderList();
+    // エリア選択時は地図をそのエリアに移動
+    if (activeArea !== "all" && AREAS[activeArea]) {
+      const b = AREAS[activeArea];
+      map.fitBounds([[b.s, b.w], [b.n, b.e]], { padding: [20, 20] });
+    }
+  });
 });
 
 document.querySelectorAll(".filter-btn").forEach(btn => {

@@ -222,6 +222,35 @@ html, body {
 .filter-scroll:last-child { margin-bottom: 0; }
 .filter-scroll::-webkit-scrollbar { display: none; }
 
+.filter-group-label {
+  font-size: 0.68rem;
+  font-weight: 700;
+  color: var(--clr-sub);
+  margin: 6px 0 4px;
+  letter-spacing: 0.04em;
+}
+
+.area-btn {
+  flex-shrink: 0;
+  padding: 5px 12px;
+  border: 1.5px solid var(--clr-border);
+  border-radius: 20px;
+  background: #fff;
+  font-size: 0.75rem;
+  cursor: pointer;
+  white-space: nowrap;
+  touch-action: manipulation;
+  color: var(--clr-sub);
+  font-family: inherit;
+  transition: all 0.15s;
+}
+
+.area-btn.active {
+  background: #E65100;
+  border-color: #E65100;
+  color: #fff;
+}
+
 .filter-btn,
 .crowd-btn {
   flex-shrink: 0;
