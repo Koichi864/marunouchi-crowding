@@ -32,7 +32,9 @@ const AREAS = {
   "有楽町": { s: 35.669, w: 139.756, n: 35.678, e: 139.767 },
   "日比谷": { s: 35.667, w: 139.750, n: 35.678, e: 139.762 },
   "霞が関": { s: 35.663, w: 139.742, n: 35.678, e: 139.756 },
-  "新橋":   { s: 35.662, w: 139.753, n: 35.671, e: 139.771 },
+  "永田町": { s: 35.668, w: 139.736, n: 35.682, e: 139.750 },
+  "赤坂":   { s: 35.661, w: 139.726, n: 35.678, e: 139.742 },
+  "新橋":   { s: 35.660, w: 139.753, n: 35.671, e: 139.771 },
 };
 
 // ── 状態 ──────────────────────────────────────────────────
@@ -44,6 +46,28 @@ let activeType = "all";
 let activeCrowd = "all";
 let activeArea = "all";
 let searchQuery = "";
+let filterPanelOpen = false;
+
+const TYPE_LABELS = {
+  restaurant: "レストラン", cafe: "カフェ",
+  fast_food: "ファストフード", bakery: "ベーカリー", bar: "バー"
+};
+
+function updateFilterBtn() {
+  const parts = [];
+  if (activeArea !== "all") parts.push(activeArea);
+  if (activeType !== "all") parts.push(TYPE_LABELS[activeType] || activeType);
+  if (activeCrowd !== "all") parts.push(CONGESTION_LABELS[activeCrowd] || activeCrowd);
+  const btn = document.getElementById("filter-toggle-btn");
+  btn.textContent = (parts.length ? parts.join("・") : "絞り込み") + (filterPanelOpen ? " ▲" : " ▼");
+  btn.classList.toggle("has-filter", parts.length > 0);
+}
+
+function toggleFilterPanel() {
+  filterPanelOpen = !filterPanelOpen;
+  document.getElementById("filter-panel").classList.toggle("open", filterPanelOpen);
+  updateFilterBtn();
+}
 
 // ── 地図初期化 ────────────────────────────────────────────
 const map = L.map("map", { zoomControl: false }).setView(CENTER, DEFAULT_ZOOM);
@@ -357,14 +381,16 @@ document.getElementById("search-input").addEventListener("input", e => {
   renderList();
 });
 
+document.getElementById("filter-toggle-btn").addEventListener("click", toggleFilterPanel);
+
 document.querySelectorAll(".area-btn").forEach(btn => {
   btn.addEventListener("click", () => {
     document.querySelectorAll(".area-btn").forEach(b => b.classList.remove("active"));
     btn.classList.add("active");
     activeArea = btn.dataset.area;
+    updateFilterBtn();
     renderMarkers();
     renderList();
-    // エリア選択時は地図をそのエリアに移動
     if (activeArea !== "all" && AREAS[activeArea]) {
       const b = AREAS[activeArea];
       map.fitBounds([[b.s, b.w], [b.n, b.e]], { padding: [20, 20] });
@@ -377,6 +403,7 @@ document.querySelectorAll(".filter-btn").forEach(btn => {
     document.querySelectorAll(".filter-btn").forEach(b => b.classList.remove("active"));
     btn.classList.add("active");
     activeType = btn.dataset.type;
+    updateFilterBtn();
     renderMarkers();
     renderList();
   });
@@ -387,6 +414,7 @@ document.querySelectorAll(".crowd-btn").forEach(btn => {
     document.querySelectorAll(".crowd-btn").forEach(b => b.classList.remove("active"));
     btn.classList.add("active");
     activeCrowd = btn.dataset.crowd;
+    updateFilterBtn();
     renderMarkers();
     renderList();
   });

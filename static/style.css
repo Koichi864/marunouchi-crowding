@@ -197,8 +197,17 @@ html, body {
   background: var(--clr-bg);
 }
 
+/* 検索行（入力 + 絞り込みボタン） */
+.search-row {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  margin-bottom: 0;
+}
+
 #search-input {
-  width: 100%;
+  flex: 1;
+  min-width: 0;
   padding: 9px 12px;
   border: 1.5px solid var(--clr-border);
   border-radius: 24px;
@@ -207,9 +216,42 @@ html, body {
   background: var(--clr-surface);
   color: var(--clr-text);
   transition: border-color 0.2s;
-  margin-bottom: 8px;
 }
 #search-input:focus { border-color: var(--clr-primary); background: #fff; }
+
+/* 絞り込みトグルボタン */
+#filter-toggle-btn {
+  flex-shrink: 0;
+  padding: 8px 12px;
+  background: #fff;
+  border: 1.5px solid var(--clr-border);
+  border-radius: 20px;
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: var(--clr-sub);
+  cursor: pointer;
+  white-space: nowrap;
+  font-family: inherit;
+  touch-action: manipulation;
+  transition: all 0.15s;
+}
+#filter-toggle-btn:active { background: var(--clr-surface); }
+#filter-toggle-btn.has-filter {
+  background: #E65100;
+  border-color: #E65100;
+  color: #fff;
+}
+
+/* フィルターパネル（折りたたみ） */
+#filter-panel {
+  max-height: 0;
+  overflow: hidden;
+  transition: max-height 0.28s ease;
+}
+#filter-panel.open {
+  max-height: 300px;
+  padding-top: 8px;
+}
 
 .filter-scroll {
   display: flex;
