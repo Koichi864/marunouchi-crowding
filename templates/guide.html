@@ -1,0 +1,232 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>使い方ガイド｜丸の内 混雑マップ</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: "Hiragino Kaku Gothic ProN", "Yu Gothic UI", "Meiryo", sans-serif;
+      background: #f5f0fb;
+      color: #333;
+      min-height: 100vh;
+    }
+    header {
+      background: linear-gradient(135deg, #7c4dff, #e91e8c);
+      color: white;
+      padding: 32px 20px 24px;
+      text-align: center;
+    }
+    header h1 { font-size: 1.4rem; font-weight: 700; margin-bottom: 6px; }
+    header p  { font-size: 0.85rem; opacity: 0.9; }
+
+    .container { max-width: 480px; margin: 0 auto; padding: 20px 16px 60px; }
+
+    .card {
+      background: white;
+      border-radius: 16px;
+      padding: 20px;
+      margin-bottom: 16px;
+      box-shadow: 0 2px 12px rgba(0,0,0,0.07);
+    }
+    .card-title {
+      font-size: 1rem;
+      font-weight: 700;
+      color: #7c4dff;
+      margin-bottom: 12px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    .card-title .num {
+      background: #7c4dff;
+      color: white;
+      border-radius: 50%;
+      width: 24px; height: 24px;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 0.8rem; flex-shrink: 0;
+    }
+
+    p, li { font-size: 0.9rem; line-height: 1.7; color: #444; }
+    ul { padding-left: 0; list-style: none; }
+    li { padding: 4px 0; }
+    li::before { content: "・"; color: #e91e8c; font-weight: bold; }
+
+    /* 混雑レベル */
+    .level-list { display: flex; flex-direction: column; gap: 8px; }
+    .level-row {
+      display: flex; align-items: center; gap: 10px;
+      padding: 8px 12px; border-radius: 10px; background: #fafafa;
+    }
+    .dot {
+      width: 14px; height: 14px; border-radius: 50%; flex-shrink: 0;
+    }
+    .d-empty    { background: #43A047; }
+    .d-quiet    { background: #8BC34A; }
+    .d-normal   { background: #FFC107; }
+    .d-busy     { background: #F44336; }
+    .d-vbusy    { background: #880E4F; }
+    .level-label { font-weight: 700; font-size: 0.88rem; min-width: 80px; }
+    .level-desc  { font-size: 0.78rem; color: #777; }
+
+    /* 検索ワード例 */
+    .tag-list { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 8px; }
+    .tag {
+      background: #f3e5f5; color: #7c4dff;
+      padding: 4px 10px; border-radius: 20px;
+      font-size: 0.8rem; font-weight: 600;
+    }
+    .tag-arrow { color: #aaa; align-self: center; font-size: 0.8rem; }
+
+    /* 注意書き */
+    .note {
+      background: #fff8e1;
+      border-left: 3px solid #FFC107;
+      padding: 10px 14px;
+      border-radius: 0 8px 8px 0;
+      font-size: 0.82rem;
+      color: #666;
+      margin-top: 10px;
+      line-height: 1.6;
+    }
+
+    .open-btn {
+      display: block;
+      margin: 24px auto 0;
+      padding: 14px 32px;
+      background: linear-gradient(135deg, #7c4dff, #e91e8c);
+      color: white;
+      border: none;
+      border-radius: 28px;
+      font-size: 1rem;
+      font-weight: 700;
+      text-decoration: none;
+      text-align: center;
+      box-shadow: 0 4px 16px rgba(124,77,255,0.35);
+    }
+
+    .footer {
+      text-align: center;
+      font-size: 0.72rem;
+      color: #aaa;
+      margin-top: 28px;
+      line-height: 1.8;
+    }
+  </style>
+</head>
+<body>
+
+<header>
+  <h1>🍴 丸の内 混雑マップ</h1>
+  <p>東京駅・丸の内・霞が関エリアの飲食店混雑情報</p>
+</header>
+
+<div class="container">
+
+  <!-- ① アプリの概要 -->
+  <div class="card">
+    <div class="card-title"><span class="num">1</span>このアプリでできること</div>
+    <p>東京駅〜丸の内〜霞が関エリアの飲食店の<strong>混雑状況を色で確認</strong>できます。</p>
+    <ul style="margin-top:10px">
+      <li>ランチ前に空いているお店を探せる</li>
+      <li>スタバ・カフェ・レストランなどで絞り込める</li>
+      <li>店名をタップすると詳細情報が見られる</li>
+      <li>5分ごとに自動更新される</li>
+    </ul>
+    <div class="note">
+      ※混雑度は時間帯・曜日に基づく<strong>予測値</strong>です。リアルタイムデータではありません。参考としてご利用ください。
+    </div>
+  </div>
+
+  <!-- ② 混雑度の見方 -->
+  <div class="card">
+    <div class="card-title"><span class="num">2</span>混雑度の色の見方</div>
+    <div class="level-list">
+      <div class="level-row">
+        <span class="dot d-empty"></span>
+        <span class="level-label">空いている</span>
+        <span class="level-desc">すぐ入れそう！</span>
+      </div>
+      <div class="level-row">
+        <span class="dot d-quiet"></span>
+        <span class="level-label">やや空き</span>
+        <span class="level-desc">比較的スムーズ</span>
+      </div>
+      <div class="level-row">
+        <span class="dot d-normal"></span>
+        <span class="level-label">普通</span>
+        <span class="level-desc">少し待つかも</span>
+      </div>
+      <div class="level-row">
+        <span class="dot d-busy"></span>
+        <span class="level-label">混雑</span>
+        <span class="level-desc">行列・待ち時間あり</span>
+      </div>
+      <div class="level-row">
+        <span class="dot d-vbusy"></span>
+        <span class="level-label">激混み</span>
+        <span class="level-desc">かなり待ちそう…</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- ③ 使い方 -->
+  <div class="card">
+    <div class="card-title"><span class="num">3</span>基本の使い方</div>
+    <ul>
+      <li>地図の<strong>ピンをタップ</strong>すると店舗詳細が表示される</li>
+      <li>画面下の<strong>バーを上にスワイプ</strong>するとリスト一覧が開く</li>
+      <li>リスト一覧でも店名をタップすると詳細が見られる</li>
+      <li>右上の <strong>↺ボタン</strong> でデータを最新にできる</li>
+      <li>「Googleマップで開く」ボタンでナビも使える</li>
+    </ul>
+  </div>
+
+  <!-- ④ 検索 -->
+  <div class="card">
+    <div class="card-title"><span class="num">4</span>かしこい検索方法</div>
+    <p>略称・ひらがなでも検索できます！</p>
+    <div class="tag-list" style="margin-top:12px; align-items:center">
+      <span class="tag">スタバ</span>
+      <span class="tag">すたば</span>
+      <span class="tag">すたー</span>
+      <span class="tag-arrow">→</span>
+      <span class="tag" style="background:#fce4ec;color:#e91e8c">スターバックスを検索</span>
+    </div>
+    <div class="tag-list" style="margin-top:8px; align-items:center">
+      <span class="tag">マック</span>
+      <span class="tag-arrow">→</span>
+      <span class="tag" style="background:#fce4ec;color:#e91e8c">マクドナルドを検索</span>
+    </div>
+    <div class="tag-list" style="margin-top:8px; align-items:center">
+      <span class="tag">ケンタ</span>
+      <span class="tag-arrow">→</span>
+      <span class="tag" style="background:#fce4ec;color:#e91e8c">ケンタッキーを検索</span>
+    </div>
+  </div>
+
+  <!-- ⑤ フィルター -->
+  <div class="card">
+    <div class="card-title"><span class="num">5</span>フィルターで絞り込み</div>
+    <p>業態ボタンで絞り込めます：</p>
+    <div class="tag-list" style="margin-top:10px">
+      <span class="tag" style="background:#e8eaf6;color:#3f51b5">レストラン</span>
+      <span class="tag" style="background:#e8eaf6;color:#3f51b5">カフェ・コーヒー</span>
+      <span class="tag" style="background:#e8eaf6;color:#3f51b5">ファストフード</span>
+      <span class="tag" style="background:#e8eaf6;color:#3f51b5">ベーカリー</span>
+      <span class="tag" style="background:#e8eaf6;color:#3f51b5">バー・パブ</span>
+    </div>
+    <p style="margin-top:10px">混雑度でも絞り込めるので「今すぐ入れるカフェ」を探すのに便利！</p>
+  </div>
+
+  <a href="/" class="open-btn">🗺 アプリを開く</a>
+
+  <div class="footer">
+    データ出典：OpenStreetMap contributors<br>
+    混雑度は時間帯予測値です。実際の混雑と異なる場合があります。
+  </div>
+
+</div>
+</body>
+</html>

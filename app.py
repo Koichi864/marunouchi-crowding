@@ -62,6 +62,26 @@ CONGESTION_LABELS = {
 
 HEADERS = {"User-Agent": "MarunouchiCrowdingApp/1.0 (educational project)"}
 
+CUISINE_JP = {
+    "coffee_shop": "コーヒー", "coffee": "コーヒー", "tea": "ティー",
+    "japanese": "和食", "italian": "イタリアン", "french": "フレンチ",
+    "chinese": "中華", "ramen": "ラーメン", "sushi": "寿司",
+    "burger": "バーガー", "pizza": "ピザ", "curry": "カレー",
+    "sandwich": "サンドイッチ", "steak": "ステーキ", "seafood": "シーフード",
+    "udon": "うどん", "soba": "そば", "tempura": "天ぷら",
+    "yakiniku": "焼肉", "tonkatsu": "とんかつ", "asian": "アジア料理",
+    "american": "アメリカン", "indian": "インド料理", "thai": "タイ料理",
+    "korean": "韓国料理", "ice_cream": "アイスクリーム", "donut": "ドーナツ",
+    "cake": "ケーキ", "bakery": "ベーカリー", "crepe": "クレープ",
+    "noodle": "麺料理", "international": "各国料理", "mediterranean": "地中海料理",
+}
+
+def translate_cuisine(raw: str) -> str:
+    if not raw:
+        return ""
+    first = raw.split(";")[0].strip()
+    return CUISINE_JP.get(first, first)
+
 
 def fetch_from_overpass():
     resp = requests.post(
@@ -83,19 +103,36 @@ def fetch_from_overpass():
             continue
 
         amenity = tags.get("amenity") or tags.get("shop", "")
+
+        # 店名：branch タグがあれば「チェーン名 + 支店名」を合成
+        base_name = tags.get("name", "名称不明")
+        branch    = tags.get("branch") or tags.get("branch:ja", "")
+        loc_name  = tags.get("loc_name", "")
+        if branch and branch not in base_name:
+            full_name = f"{base_name} {branch}"
+        elif loc_name and loc_name not in base_name and len(loc_name) > len(base_name):
+            full_name = loc_name
+        else:
+            full_name = base_name
+
+        # 住所（区・丁目レベル）
+        addr = (tags.get("addr:full")
+                or tags.get("addr:street", "")
+                or tags.get("addr:neighbourhood", ""))
+
         restaurants.append({
             "id":          el.get("id"),
-            "name":        tags.get("name", "名称不明"),
+            "name":        full_name,
             "name_en":     tags.get("name:en", ""),
             "lat":         lat,
             "lon":         lon,
             "amenity":     amenity,
             "amenity_label": AMENITY_LABELS.get(amenity, amenity),
-            "cuisine":     tags.get("cuisine", ""),
+            "cuisine":     translate_cuisine(tags.get("cuisine", "")),
             "opening_hours": tags.get("opening_hours", ""),
             "phone":       tags.get("phone") or tags.get("contact:phone", ""),
             "website":     tags.get("website") or tags.get("contact:website", ""),
-            "addr":        tags.get("addr:full") or tags.get("addr:street", ""),
+            "addr":        addr,
         })
 
     return restaurants
@@ -182,6 +219,11 @@ def compute_congestion(restaurant_id: int, amenity: str) -> str:
 @app.route("/")
 def index():
     return render_template("index.html")
+
+
+@app.route("/guide")
+def guide():
+    return render_template("guide.html")
 
 
 @app.route("/api/restaurants")

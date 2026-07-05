@@ -196,11 +196,12 @@ function renderList() {
     const li = document.createElement("li");
     li.className = "r-item";
     li.dataset.id = r.id;
+    const addrText = r.addr ? ` · ${r.addr}` : "";
     li.innerHTML = `
       <span class="r-crowd-bar" style="background:${color}"></span>
       <div class="r-item-body">
         <div class="r-name">${r.name}</div>
-        <div class="r-meta">${r.amenity_label}${r.cuisine ? " · " + r.cuisine : ""}</div>
+        <div class="r-meta">${r.amenity_label}${r.cuisine ? " · " + r.cuisine : ""}${addrText}</div>
       </div>
       <span class="r-badge" style="background:${color}20;color:${color}">${label}</span>
     `;
