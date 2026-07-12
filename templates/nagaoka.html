@@ -1,0 +1,82 @@
+{% extends "base_map.html" %}
+
+{% block page_title %}長岡 混雑マップ{% endblock %}
+{% block header_title %}🌸 長岡 混雑マップ{% endblock %}
+
+{% block nav_bar %}
+<div class="nav-cities">
+  <a href="/" class="nav-city">🏙 丸の内</a>
+  <a href="/nagaoka" class="nav-city active">🌸 長岡</a>
+</div>
+{% endblock %}
+
+{% block search_ph %}店名・ジャンルで検索...{% endblock %}
+
+{% block filter_panel %}
+<div class="filter-group-label">📍 エリア</div>
+<div class="filter-scroll" id="area-filters">
+  <button class="area-btn active" data-area="all">全エリア</button>
+  <button class="area-btn" data-area="駅周辺">駅周辺</button>
+  <button class="area-btn" data-area="大手通">大手通</button>
+  <button class="area-btn" data-area="殿町">殿町</button>
+  <button class="area-btn" data-area="東口">東口</button>
+  <button class="area-btn" data-area="摂田屋">摂田屋</button>
+</div>
+
+<div class="filter-group-label">🍴 ジャンル</div>
+<div class="filter-scroll" id="type-filters">
+  <button class="filter-btn active" data-type="all">すべて</button>
+  <button class="filter-btn" data-type="restaurant">レストラン</button>
+  <button class="filter-btn" data-type="cafe">カフェ</button>
+  <button class="filter-btn" data-type="fast_food">ファストフード</button>
+  <button class="filter-btn" data-type="bakery">ベーカリー</button>
+  <button class="filter-btn" data-type="bar">バー・パブ</button>
+</div>
+
+<div class="filter-group-label">🔴 混雑度</div>
+<div class="filter-scroll" id="crowd-filters">
+  <button class="crowd-btn active" data-crowd="all">すべて</button>
+  <button class="crowd-btn" data-crowd="empty">空いている</button>
+  <button class="crowd-btn" data-crowd="quiet">やや空き</button>
+  <button class="crowd-btn" data-crowd="normal">普通</button>
+  <button class="crowd-btn" data-crowd="busy">混雑</button>
+  <button class="crowd-btn" data-crowd="very_busy">激混み</button>
+</div>
+{% endblock %}
+
+{% block app_config %}
+{
+  city: "nagaoka",
+  center: [37.445, 138.852],
+  defaultZoom: 15,
+  areas: {
+    "駅周辺": { s: 37.438, w: 138.847, n: 37.452, e: 138.862 },
+    "大手通": { s: 37.440, w: 138.839, n: 37.449, e: 138.854 },
+    "殿町":   { s: 37.447, w: 138.841, n: 37.457, e: 138.857 },
+    "東口":   { s: 37.437, w: 138.851, n: 37.451, e: 138.866 },
+    "摂田屋": { s: 37.453, w: 138.830, n: 37.462, e: 138.846 }
+  },
+  i18n: {
+    filterDefault:   "絞り込み",
+    filterSep:       "・",
+    updatePrefix:    "更新 ",
+    loadingMsg:      "データを読み込んでいます...",
+    refreshingMsg:   "データを更新しています...",
+    countFmt:        "{n} 件表示中 / 全 {total} 件",
+    congestionTitle: "現在の混雑状況",
+    congestionNote:  "※時間帯に基づく予測値（リアルタイムデータではありません）",
+    noInfo:          "詳細情報なし",
+    websiteLabel:    "ウェブサイト",
+    googleMapsLabel: "Googleマップで開く",
+    errorPrefix:     "エラー: ",
+    congestion: {
+      empty: "空いている", quiet: "やや空き", normal: "普通",
+      busy: "混雑", very_busy: "激混み"
+    },
+    typeLabels: {
+      restaurant: "レストラン", cafe: "カフェ",
+      fast_food: "ファストフード", bakery: "ベーカリー", bar: "バー"
+    }
+  }
+}
+{% endblock %}

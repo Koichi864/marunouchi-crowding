@@ -1,0 +1,111 @@
+{% extends "base_map.html" %}
+
+{% block html_lang %}en{% endblock %}
+{% block page_title %}Marunouchi Crowd Map{% endblock %}
+{% block header_title %}🍴 Marunouchi Crowd Map{% endblock %}
+
+{% block nav_bar %}
+<div class="nav-cities">
+  <a href="/en" class="nav-city active">🏙 Marunouchi</a>
+  <a href="/nagaoka" class="nav-city">🌸 Nagaoka</a>
+</div>
+<div class="nav-langs">
+  <a href="/" class="nav-lang">JP</a>
+  <a href="/en" class="nav-lang active">EN</a>
+  <a href="/es" class="nav-lang">ES</a>
+</div>
+{% endblock %}
+
+{% block legend_title %}Congestion{% endblock %}
+{% block legend_rows %}
+<div class="legend-row"><span class="leg-dot level-empty"></span>Not crowded</div>
+<div class="legend-row"><span class="leg-dot level-quiet"></span>Fairly quiet</div>
+<div class="legend-row"><span class="leg-dot level-normal"></span>Moderate</div>
+<div class="legend-row"><span class="leg-dot level-busy"></span>Crowded</div>
+<div class="legend-row"><span class="leg-dot level-very_busy"></span>Very crowded</div>
+{% endblock %}
+{% block legend_note %}※Time-based estimate{% endblock %}
+
+{% block search_ph %}Search by name or type...{% endblock %}
+{% block filter_toggle_init %}Filter ▼{% endblock %}
+
+{% block filter_panel %}
+<div class="filter-group-label">📍 Area</div>
+<div class="filter-scroll" id="area-filters">
+  <button class="area-btn active" data-area="all">All areas</button>
+  <button class="area-btn" data-area="丸の内">Marunouchi</button>
+  <button class="area-btn" data-area="大手町">Otemachi</button>
+  <button class="area-btn" data-area="八重洲">Yaesu</button>
+  <button class="area-btn" data-area="有楽町">Yurakucho</button>
+  <button class="area-btn" data-area="日比谷">Hibiya</button>
+  <button class="area-btn" data-area="霞が関">Kasumigaseki</button>
+  <button class="area-btn" data-area="永田町">Nagatacho</button>
+  <button class="area-btn" data-area="赤坂">Akasaka</button>
+  <button class="area-btn" data-area="新橋">Shimbashi</button>
+</div>
+
+<div class="filter-group-label">🍴 Type</div>
+<div class="filter-scroll" id="type-filters">
+  <button class="filter-btn active" data-type="all">All</button>
+  <button class="filter-btn" data-type="restaurant">Restaurant</button>
+  <button class="filter-btn" data-type="cafe">Café</button>
+  <button class="filter-btn" data-type="fast_food">Fast food</button>
+  <button class="filter-btn" data-type="bakery">Bakery</button>
+  <button class="filter-btn" data-type="bar">Bar/Pub</button>
+</div>
+
+<div class="filter-group-label">🔴 Congestion</div>
+<div class="filter-scroll" id="crowd-filters">
+  <button class="crowd-btn active" data-crowd="all">All</button>
+  <button class="crowd-btn" data-crowd="empty">Not crowded</button>
+  <button class="crowd-btn" data-crowd="quiet">Fairly quiet</button>
+  <button class="crowd-btn" data-crowd="normal">Moderate</button>
+  <button class="crowd-btn" data-crowd="busy">Crowded</button>
+  <button class="crowd-btn" data-crowd="very_busy">Very crowded</button>
+</div>
+{% endblock %}
+
+{% block list_count_init %}Loading...{% endblock %}
+{% block back_btn_text %}← Back to list{% endblock %}
+{% block loading_text_init %}Loading...{% endblock %}
+
+{% block app_config %}
+{
+  city: "marunouchi",
+  center: [35.678, 139.760],
+  defaultZoom: 15,
+  areas: {
+    "丸の内": { s: 35.675, w: 139.753, n: 35.692, e: 139.768 },
+    "大手町": { s: 35.682, w: 139.757, n: 35.696, e: 139.775 },
+    "八重洲": { s: 35.673, w: 139.767, n: 35.690, e: 139.782 },
+    "有楽町": { s: 35.669, w: 139.756, n: 35.678, e: 139.767 },
+    "日比谷": { s: 35.667, w: 139.750, n: 35.678, e: 139.762 },
+    "霞が関": { s: 35.663, w: 139.742, n: 35.678, e: 139.756 },
+    "永田町": { s: 35.668, w: 139.736, n: 35.682, e: 139.750 },
+    "赤坂":   { s: 35.661, w: 139.726, n: 35.678, e: 139.742 },
+    "新橋":   { s: 35.660, w: 139.753, n: 35.671, e: 139.771 }
+  },
+  i18n: {
+    filterDefault:   "Filter",
+    filterSep:       " · ",
+    updatePrefix:    "Updated ",
+    loadingMsg:      "Loading data...",
+    refreshingMsg:   "Refreshing data...",
+    countFmt:        "Showing {n} of {total} places",
+    congestionTitle: "Current Congestion",
+    congestionNote:  "※Estimated from time of day — not real-time data",
+    noInfo:          "No details available",
+    websiteLabel:    "Website",
+    googleMapsLabel: "Open in Google Maps",
+    errorPrefix:     "Error: ",
+    congestion: {
+      empty: "Not crowded", quiet: "Fairly quiet", normal: "Moderate",
+      busy: "Crowded", very_busy: "Very crowded"
+    },
+    typeLabels: {
+      restaurant: "Restaurant", cafe: "Café",
+      fast_food: "Fast food", bakery: "Bakery", bar: "Bar/Pub"
+    }
+  }
+}
+{% endblock %}

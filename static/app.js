@@ -1,9 +1,14 @@
 "use strict";
 
-// ── 定数 ──────────────────────────────────────────────────
-const CENTER = [35.678, 139.760];  // 東京駅〜霞が関エリア中心
-const DEFAULT_ZOOM = 15;
-const AUTO_REFRESH_MS = 5 * 60 * 1000;  // 5分ごとに混雑度更新
+// ── APP_CONFIG (テンプレートから注入) ──────────────────────────
+const CFG  = window.APP_CONFIG || {};
+const I18N = CFG.i18n || {};
+
+// ── 定数 ──────────────────────────────────────────────────────
+const CENTER      = CFG.center      || [35.678, 139.760];
+const DEFAULT_ZOOM = CFG.defaultZoom || 15;
+const CITY        = CFG.city        || "marunouchi";
+const AUTO_REFRESH_MS = 5 * 60 * 1000;
 
 const CONGESTION_COLORS = {
   empty:    "#43A047",
@@ -13,7 +18,7 @@ const CONGESTION_COLORS = {
   very_busy:"#880E4F",
 };
 
-const CONGESTION_LABELS = {
+const CONGESTION_LABELS = I18N.congestion || {
   empty:    "空いている",
   quiet:    "やや空き",
   normal:   "普通",
@@ -21,45 +26,41 @@ const CONGESTION_LABELS = {
   very_busy:"激混み",
 };
 
-const CONGESTION_ORDER = ["empty", "quiet", "normal", "busy", "very_busy"];
-const LEVEL_DOTS = { empty: 0, quiet: 1, normal: 2, busy: 4, very_busy: 5 };
-
-// ── エリア定義（緯度経度のバウンディングボックス） ──────────
-const AREAS = {
-  "丸の内": { s: 35.675, w: 139.753, n: 35.692, e: 139.768 },
-  "大手町": { s: 35.682, w: 139.757, n: 35.696, e: 139.775 },
-  "八重洲": { s: 35.673, w: 139.767, n: 35.690, e: 139.782 },
-  "有楽町": { s: 35.669, w: 139.756, n: 35.678, e: 139.767 },
-  "日比谷": { s: 35.667, w: 139.750, n: 35.678, e: 139.762 },
-  "霞が関": { s: 35.663, w: 139.742, n: 35.678, e: 139.756 },
-  "永田町": { s: 35.668, w: 139.736, n: 35.682, e: 139.750 },
-  "赤坂":   { s: 35.661, w: 139.726, n: 35.678, e: 139.742 },
-  "新橋":   { s: 35.660, w: 139.753, n: 35.671, e: 139.771 },
+const TYPE_LABELS = I18N.typeLabels || {
+  restaurant: "レストラン",
+  cafe:       "カフェ",
+  fast_food:  "ファストフード",
+  bakery:     "ベーカリー",
+  bar:        "バー",
 };
 
-// ── 状態 ──────────────────────────────────────────────────
+const CONGESTION_ORDER = ["empty", "quiet", "normal", "busy", "very_busy"];
+const LEVEL_DOTS       = { empty: 0, quiet: 1, normal: 2, busy: 4, very_busy: 5 };
+
+// ── エリア定義 ─────────────────────────────────────────────────
+const AREAS = CFG.areas || {};
+
+// ── 状態 ──────────────────────────────────────────────────────
 let allRestaurants = [];
-let congestionMap = {};   // { restaurantId: level }
-let markers = {};         // { restaurantId: L.Marker }
-let sheetExpanded = false;
-let activeType = "all";
-let activeCrowd = "all";
-let activeArea = "all";
-let searchQuery = "";
+let congestionMap  = {};
+let markers        = {};
+let sheetExpanded  = false;
+let activeType     = "all";
+let activeCrowd    = "all";
+let activeArea     = "all";
+let searchQuery    = "";
 let filterPanelOpen = false;
 
-const TYPE_LABELS = {
-  restaurant: "レストラン", cafe: "カフェ",
-  fast_food: "ファストフード", bakery: "ベーカリー", bar: "バー"
-};
-
+// ── フィルターボタン更新 ───────────────────────────────────────
 function updateFilterBtn() {
   const parts = [];
-  if (activeArea !== "all") parts.push(activeArea);
-  if (activeType !== "all") parts.push(TYPE_LABELS[activeType] || activeType);
+  if (activeArea  !== "all") parts.push(activeArea);
+  if (activeType  !== "all") parts.push(TYPE_LABELS[activeType]  || activeType);
   if (activeCrowd !== "all") parts.push(CONGESTION_LABELS[activeCrowd] || activeCrowd);
+  const sep = I18N.filterSep || "・";
+  const defaultText = I18N.filterDefault || "絞り込み";
   const btn = document.getElementById("filter-toggle-btn");
-  btn.textContent = (parts.length ? parts.join("・") : "絞り込み") + (filterPanelOpen ? " ▲" : " ▼");
+  btn.textContent = (parts.length ? parts.join(sep) : defaultText) + (filterPanelOpen ? " ▲" : " ▼");
   btn.classList.toggle("has-filter", parts.length > 0);
 }
 
@@ -69,7 +70,7 @@ function toggleFilterPanel() {
   updateFilterBtn();
 }
 
-// ── 地図初期化 ────────────────────────────────────────────
+// ── 地図初期化 ────────────────────────────────────────────────
 const map = L.map("map", { zoomControl: false }).setView(CENTER, DEFAULT_ZOOM);
 L.control.zoom({ position: "topright" }).addTo(map);
 L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
@@ -77,43 +78,34 @@ L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
   maxZoom: 19,
 }).addTo(map);
 
-// 地図タップでシート折りたたみ
 map.on("click", () => {
   if (sheetExpanded) setSheetState(false);
 });
 
-// ── ボトムシート制御 ───────────────────────────────────────
-const sheet = document.getElementById("bottom-sheet");
+// ── ボトムシート制御 ───────────────────────────────────────────
+const sheet      = document.getElementById("bottom-sheet");
 const sheetHandle = document.getElementById("sheet-handle");
 
 function setSheetState(expanded) {
   sheetExpanded = expanded;
   sheet.classList.toggle("expanded", expanded);
-  // リスト表示中は凡例を隠す（地図表示中だけ凡例が必要）
   document.getElementById("legend").classList.toggle("hidden", expanded);
 }
 
-// タップでトグル
 sheetHandle.addEventListener("click", () => setSheetState(!sheetExpanded));
 
-// スワイプ操作
 let touchStartY = 0;
 sheetHandle.addEventListener("touchstart", e => {
   touchStartY = e.touches[0].clientY;
 }, { passive: true });
-
 sheetHandle.addEventListener("touchend", e => {
   const dy = e.changedTouches[0].clientY - touchStartY;
-  if (Math.abs(dy) < 8) {
-    setSheetState(!sheetExpanded);
-  } else if (dy > 30) {
-    setSheetState(false);
-  } else if (dy < -30) {
-    setSheetState(true);
-  }
+  if (Math.abs(dy) < 8)  setSheetState(!sheetExpanded);
+  else if (dy > 30)      setSheetState(false);
+  else if (dy < -30)     setSheetState(true);
 }, { passive: true });
 
-// ── マーカーアイコン生成 ───────────────────────────────────
+// ── マーカーアイコン生成 ───────────────────────────────────────
 function makeMarkerIcon(level) {
   const color = CONGESTION_COLORS[level] || "#9E9E9E";
   const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="30" height="38" viewBox="0 0 30 38">
@@ -122,40 +114,30 @@ function makeMarkerIcon(level) {
     <circle fill="white" fill-opacity="0.9" cx="15" cy="13.5" r="5.5"/>
   </svg>`;
   return L.divIcon({
-    html: svg,
-    className: "",
-    iconSize: [30, 38],
-    iconAnchor: [15, 38],
-    popupAnchor: [0, -40],
+    html: svg, className: "",
+    iconSize: [30, 38], iconAnchor: [15, 38], popupAnchor: [0, -40],
   });
 }
 
-// ── 検索エイリアス（通称・略称 → 正式名称） ───────────────
+// ── 検索エイリアス ────────────────────────────────────────────
 const SEARCH_ALIASES = {
-  "スタバ":      "スターバックス",
-  "すたば":      "スターバックス",
-  "すたー":      "スターバックス",
-  "すたばっ":    "スターバックス",
-  "starbucks":   "スターバックス",
-  "マック":      "マクドナルド",
-  "まっく":      "マクドナルド",
-  "mcd":         "マクドナルド",
-  "mcdonald":    "マクドナルド",
-  "ケンタ":      "ケンタッキー",
-  "けんた":      "ケンタッキー",
-  "kfc":         "ケンタッキー",
-  "モスバ":      "モスバーガー",
-  "もすば":      "モスバーガー",
-  "ミスド":      "ミスタードーナツ",
-  "みすど":      "ミスタードーナツ",
-  "サイゼ":      "サイゼリヤ",
-  "さいぜ":      "サイゼリヤ",
-  "デニズ":      "デニーズ",
-  "でにず":      "デニーズ",
-  "ガスト":      "ガスト",
-  "すき家":      "すき家",
-  "吉野家":      "吉野家",
-  "松屋":        "松屋",
+  "スタバ":    "スターバックス",
+  "すたば":    "スターバックス",
+  "すたー":    "スターバックス",
+  "starbucks": "スターバックス",
+  "マック":    "マクドナルド",
+  "まっく":    "マクドナルド",
+  "mcdonald":  "マクドナルド",
+  "mcd":       "マクドナルド",
+  "ケンタ":    "ケンタッキー",
+  "けんた":    "ケンタッキー",
+  "kfc":       "ケンタッキー",
+  "モスバ":    "モスバーガー",
+  "もすば":    "モスバーガー",
+  "ミスド":    "ミスタードーナツ",
+  "みすど":    "ミスタードーナツ",
+  "サイゼ":    "サイゼリヤ",
+  "さいぜ":    "サイゼリヤ",
 };
 
 function resolveAliases(q) {
@@ -169,18 +151,15 @@ function resolveAliases(q) {
   return [...results];
 }
 
-// ── フィルタリング ─────────────────────────────────────────
+// ── フィルタリング ─────────────────────────────────────────────
 function filtered() {
   const queries = resolveAliases(searchQuery);
-
   return allRestaurants
     .filter(r => {
-      // エリアフィルター
       if (activeArea !== "all") {
         const bbox = AREAS[activeArea];
-        if (bbox && !(r.lat >= bbox.s && r.lat <= bbox.n && r.lon >= bbox.w && r.lon <= bbox.e)) {
+        if (bbox && !(r.lat >= bbox.s && r.lat <= bbox.n && r.lon >= bbox.w && r.lon <= bbox.e))
           return false;
-        }
       }
       if (activeType !== "all") {
         if (activeType === "bar") {
@@ -195,50 +174,47 @@ function filtered() {
       }
       if (activeCrowd !== "all" && congestionMap[r.id] !== activeCrowd) return false;
       if (searchQuery) {
-        const nameLower     = r.name.toLowerCase();
-        const nameEnLower   = (r.name_en || "").toLowerCase();
-        const cuisineLower  = (r.cuisine || "").toLowerCase();
-        const amenityLower  = (r.amenity_label || "").toLowerCase();
-        const matches = queries.some(q =>
-          nameLower.includes(q) || nameEnLower.includes(q) ||
-          cuisineLower.includes(q) || amenityLower.includes(q)
-        );
-        if (!matches) return false;
+        const nl = r.name.toLowerCase();
+        const el = (r.name_en || "").toLowerCase();
+        const cl = (r.cuisine || "").toLowerCase();
+        const al = (r.amenity_label || "").toLowerCase();
+        if (!queries.some(q => nl.includes(q) || el.includes(q) || cl.includes(q) || al.includes(q)))
+          return false;
       }
       return true;
     })
     .sort((a, b) => {
-      // 混雑度が高い順に並べる
       const la = CONGESTION_ORDER.indexOf(congestionMap[a.id] || "empty");
       const lb = CONGESTION_ORDER.indexOf(congestionMap[b.id] || "empty");
       return lb - la;
     });
 }
 
-// ── 混雑メーター HTML ──────────────────────────────────────
+// ── 混雑メーター HTML ──────────────────────────────────────────
 function crowdMeterHtml(level) {
-  const color = CONGESTION_COLORS[level] || "#9E9E9E";
+  const color  = CONGESTION_COLORS[level] || "#9E9E9E";
   const filled = LEVEL_DOTS[level] ?? 0;
-  const dots = Array.from({ length: 5 }, (_, i) =>
+  const dots   = Array.from({ length: 5 }, (_, i) =>
     `<span class="c-dot" style="background:${i < filled ? color : "#e0e0e0"}"></span>`
   ).join("");
-  const label = CONGESTION_LABELS[level] || "不明";
+  const label  = CONGESTION_LABELS[level] || "---";
   return `<div class="crowd-meter">${dots}<span class="crowd-label" style="color:${color}">${label}</span></div>`;
 }
 
-// ── リスト描画 ─────────────────────────────────────────────
+// ── リスト描画 ─────────────────────────────────────────────────
 function renderList() {
-  const list = document.getElementById("restaurant-list");
+  const list  = document.getElementById("restaurant-list");
   const items = filtered();
+  const fmt   = I18N.countFmt || "{n} 件表示中 / 全 {total} 件";
   document.getElementById("list-count").textContent =
-    `${items.length} 件表示中 / 全 ${allRestaurants.length} 件`;
+    fmt.replace("{n}", items.length).replace("{total}", allRestaurants.length);
 
   list.innerHTML = "";
   items.forEach(r => {
     const level = congestionMap[r.id] || "empty";
     const color = CONGESTION_COLORS[level];
     const label = CONGESTION_LABELS[level];
-    const li = document.createElement("li");
+    const li    = document.createElement("li");
     li.className = "r-item";
     li.dataset.id = r.id;
     const addrText = r.addr ? ` · ${r.addr}` : "";
@@ -255,55 +231,48 @@ function renderList() {
   });
 }
 
-// ── マーカー描画 ───────────────────────────────────────────
+// ── マーカー描画 ───────────────────────────────────────────────
 function renderMarkers() {
   Object.values(markers).forEach(m => map.removeLayer(m));
   markers = {};
-
   filtered().forEach(r => {
     const level = congestionMap[r.id] || "empty";
     const m = L.marker([r.lat, r.lon], { icon: makeMarkerIcon(level) })
       .addTo(map)
       .bindTooltip(r.name, { direction: "top", offset: [0, -36], className: "map-tooltip" });
-    m.on("click", () => {
-      showDetail(r.id);
-      setSheetState(true);
-    });
+    m.on("click", () => { showDetail(r.id); setSheetState(true); });
     markers[r.id] = m;
   });
 }
 
-// ── 詳細表示 ───────────────────────────────────────────────
+// ── 詳細表示 ───────────────────────────────────────────────────
 function showDetail(id) {
   const r = allRestaurants.find(x => x.id === id);
   if (!r) return;
-
   const level = congestionMap[r.id] || "empty";
 
   let html = `
     <div class="detail-name">${r.name}</div>
     ${r.name_en ? `<div class="detail-name-en">${r.name_en}</div>` : ""}
     <div class="detail-crowd-section">
-      <div class="detail-crowd-title">現在の混雑状況</div>
+      <div class="detail-crowd-title">${I18N.congestionTitle || "現在の混雑状況"}</div>
       ${crowdMeterHtml(level)}
-      <div class="detail-crowd-note">※時間帯に基づく予測値（リアルタイムデータではありません）</div>
+      <div class="detail-crowd-note">${I18N.congestionNote || "※時間帯に基づく予測値"}</div>
     </div>
     <div class="detail-info">
   `;
-
   if (r.amenity_label) html += `<div class="detail-row"><span class="detail-icon">🏷</span><span>${r.amenity_label}${r.cuisine ? " / " + r.cuisine : ""}</span></div>`;
   if (r.opening_hours) html += `<div class="detail-row"><span class="detail-icon">🕐</span><span>${r.opening_hours}</span></div>`;
   if (r.phone)         html += `<div class="detail-row"><span class="detail-icon">📞</span><a href="tel:${r.phone}">${r.phone}</a></div>`;
-  if (r.website)       html += `<div class="detail-row"><span class="detail-icon">🌐</span><a href="${r.website}" target="_blank" rel="noopener">ウェブサイト</a></div>`;
+  if (r.website)       html += `<div class="detail-row"><span class="detail-icon">🌐</span><a href="${r.website}" target="_blank" rel="noopener">${I18N.websiteLabel || "ウェブサイト"}</a></div>`;
   if (r.addr)          html += `<div class="detail-row"><span class="detail-icon">📍</span><span>${r.addr}</span></div>`;
   if (!r.amenity_label && !r.opening_hours && !r.phone && !r.website && !r.addr) {
-    html += `<div class="detail-row"><span>詳細情報なし</span></div>`;
+    html += `<div class="detail-row"><span>${I18N.noInfo || "詳細情報なし"}</span></div>`;
   }
-
   html += `</div>
     <div class="detail-map-link">
       <a href="https://www.google.com/maps/search/?api=1&query=${r.lat},${r.lon}" target="_blank" rel="noopener">
-        Googleマップで開く
+        ${I18N.googleMapsLabel || "Googleマップで開く"}
       </a>
     </div>
   `;
@@ -311,59 +280,59 @@ function showDetail(id) {
   document.getElementById("detail-content").innerHTML = html;
   document.getElementById("sheet-content").classList.add("hidden");
   document.getElementById("detail-view").classList.remove("hidden");
-
   if (!sheetExpanded) setSheetState(true);
   map.setView([r.lat, r.lon], Math.max(map.getZoom(), 17));
 }
 
-// ── 一覧に戻る ─────────────────────────────────────────────
+// ── 一覧に戻る ─────────────────────────────────────────────────
 document.getElementById("back-btn").addEventListener("click", () => {
   document.getElementById("detail-view").classList.add("hidden");
   document.getElementById("sheet-content").classList.remove("hidden");
 });
 
-// ── 混雑度データ取得 ───────────────────────────────────────
+// ── 混雑度データ取得 ───────────────────────────────────────────
 async function fetchCongestion() {
   try {
-    const res = await fetch("/api/congestion");
+    const res  = await fetch("/api/congestion?city=" + CITY);
     const json = await res.json();
     if (!json.ok) throw new Error(json.error);
-
     congestionMap = {};
     for (const [id, level] of Object.entries(json.congestion)) {
       congestionMap[parseInt(id)] = level;
     }
-
-    document.getElementById("update-badge").textContent = `更新 ${json.updated_at}`;
+    document.getElementById("update-badge").textContent =
+      (I18N.updatePrefix || "更新 ") + json.updated_at;
     renderMarkers();
     renderList();
   } catch (e) {
-    console.error("混雑度取得エラー:", e);
+    console.error("Congestion fetch error:", e);
   }
 }
 
-// ── レストランデータ取得 ───────────────────────────────────
+// ── レストランデータ取得 ───────────────────────────────────────
 async function loadRestaurants(refresh = false) {
-  showLoading(refresh ? "データを更新しています..." : "データを読み込んでいます...");
+  showLoading(refresh
+    ? (I18N.refreshingMsg || "データを更新しています...")
+    : (I18N.loadingMsg    || "データを読み込んでいます..."));
   try {
     if (refresh) {
-      const r = await fetch("/api/refresh");
+      const r = await fetch("/api/refresh?city=" + CITY);
       const j = await r.json();
       if (!j.ok) throw new Error(j.error);
     }
-    const res = await fetch("/api/restaurants");
+    const res  = await fetch("/api/restaurants?city=" + CITY);
     const json = await res.json();
     if (!json.ok) throw new Error(json.error);
     allRestaurants = json.restaurants;
     await fetchCongestion();
   } catch (e) {
-    alert("エラー: " + e.message);
+    alert((I18N.errorPrefix || "エラー: ") + e.message);
   } finally {
     hideLoading();
   }
 }
 
-// ── ローディング ───────────────────────────────────────────
+// ── ローディング ───────────────────────────────────────────────
 function showLoading(msg) {
   document.querySelector(".loading-text").textContent = msg;
   document.getElementById("loading-overlay").classList.remove("hidden");
@@ -372,7 +341,7 @@ function hideLoading() {
   document.getElementById("loading-overlay").classList.add("hidden");
 }
 
-// ── イベントリスナー ───────────────────────────────────────
+// ── イベントリスナー ───────────────────────────────────────────
 document.getElementById("refresh-btn").addEventListener("click", () => loadRestaurants(true));
 
 document.getElementById("search-input").addEventListener("input", e => {
@@ -420,8 +389,8 @@ document.querySelectorAll(".crowd-btn").forEach(btn => {
   });
 });
 
-// ── 定期的に混雑度更新 ────────────────────────────────────
+// ── 定期的に混雑度更新 ─────────────────────────────────────────
 setInterval(fetchCongestion, AUTO_REFRESH_MS);
 
-// ── 初期化 ────────────────────────────────────────────────
+// ── 初期化 ────────────────────────────────────────────────────
 loadRestaurants();

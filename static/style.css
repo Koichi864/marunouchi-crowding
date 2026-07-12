@@ -3,6 +3,7 @@
 
 :root {
   --header-h: 54px;
+  --nav-h: 34px;
   --sheet-peek: 88px;   /* 折りたたみ時に見える高さ */
   --sheet-h: 72vh;      /* ボトムシートの高さ */
 
@@ -82,6 +83,52 @@ html, body {
   touch-action: manipulation;
 }
 #refresh-btn:active { background: rgba(255,255,255,0.15); }
+
+/* ────────────────── ナビゲーションバー ────────────────── */
+#nav-bar {
+  position: fixed;
+  top: var(--header-h);
+  left: 0; right: 0;
+  height: var(--nav-h);
+  background: var(--clr-primary-d);
+  z-index: 1999;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 12px;
+  gap: 8px;
+}
+
+.nav-cities,
+.nav-langs {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+}
+
+.nav-city,
+.nav-lang {
+  color: rgba(255,255,255,0.7);
+  text-decoration: none;
+  font-size: 0.72rem;
+  font-weight: 600;
+  padding: 3px 9px;
+  border-radius: 14px;
+  transition: all 0.15s;
+  white-space: nowrap;
+}
+
+.nav-city.active,
+.nav-lang.active {
+  color: #fff;
+  background: rgba(255,255,255,0.22);
+}
+
+.nav-city:hover,
+.nav-lang:hover {
+  color: #fff;
+  background: rgba(255,255,255,0.12);
+}
 
 /* ────────────────── 地図 ────────────────── */
 #map {
@@ -569,8 +616,8 @@ html, body {
   #bottom-sheet {
     width: 380px;
     right: auto;
-    height: calc(100vh - var(--header-h));
-    top: var(--header-h);
+    height: calc(100vh - var(--header-h) - var(--nav-h));
+    top: calc(var(--header-h) + var(--nav-h));
     bottom: 0;
     border-radius: 0;
     box-shadow: 2px 0 16px rgba(0,0,0,0.12);
@@ -580,7 +627,7 @@ html, body {
   #legend {
     left: 400px;
     bottom: auto;
-    top: calc(var(--header-h) + 10px);
+    top: calc(var(--header-h) + var(--nav-h) + 10px);
   }
   .leaflet-control-zoom {
     right: 10px !important;

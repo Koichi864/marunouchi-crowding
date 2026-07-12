@@ -1,0 +1,177 @@
+<!DOCTYPE html>
+<html lang="{% block html_lang %}ja{% endblock %}">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+  <title>{% block page_title %}丸の内 混雑マップ{% endblock %}</title>
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+  <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}" />
+</head>
+<body>
+
+  <!-- ── ヘッダー ── -->
+  <header id="app-header">
+    <div class="header-inner">
+      <h1 id="app-title">{% block header_title %}🍴 丸の内 混雑マップ{% endblock %}</h1>
+      <div class="header-right">
+        <span id="update-badge">--:--</span>
+        <button id="refresh-btn" aria-label="refresh">↺</button>
+      </div>
+    </div>
+  </header>
+
+  <!-- ── ナビゲーションバー ── -->
+  <div id="nav-bar">
+    {% block nav_bar %}
+    <div class="nav-cities">
+      <a href="/" class="nav-city active">🏙 丸の内</a>
+      <a href="/nagaoka" class="nav-city">🌸 長岡</a>
+    </div>
+    <div class="nav-langs">
+      <a href="/" class="nav-lang active">JP</a>
+      <a href="/en" class="nav-lang">EN</a>
+      <a href="/es" class="nav-lang">ES</a>
+    </div>
+    {% endblock %}
+  </div>
+
+  <!-- ── 地図 ── -->
+  <div id="map"></div>
+
+  <!-- ── 凡例（地図上フローティング） ── -->
+  <div id="legend">
+    <div class="legend-title">{% block legend_title %}混雑度{% endblock %}</div>
+    {% block legend_rows %}
+    <div class="legend-row"><span class="leg-dot level-empty"></span>空いている</div>
+    <div class="legend-row"><span class="leg-dot level-quiet"></span>やや空き</div>
+    <div class="legend-row"><span class="leg-dot level-normal"></span>普通</div>
+    <div class="legend-row"><span class="leg-dot level-busy"></span>混雑</div>
+    <div class="legend-row"><span class="leg-dot level-very_busy"></span>激混み</div>
+    {% endblock %}
+    <div class="legend-note">{% block legend_note %}※時間帯予測{% endblock %}</div>
+  </div>
+
+  <!-- ── ボトムシート ── -->
+  <div id="bottom-sheet">
+    <div id="sheet-handle">
+      <div id="handle-bar"></div>
+    </div>
+
+    <div id="sheet-content">
+      <div id="filter-bar">
+        <div class="search-row">
+          <input id="search-input" type="search"
+            placeholder="{% block search_ph %}店名・ジャンルで検索...{% endblock %}"
+            autocomplete="off" />
+          <button id="filter-toggle-btn">{% block filter_toggle_init %}絞り込み ▼{% endblock %}</button>
+        </div>
+
+        <div id="filter-panel">
+          {% block filter_panel %}
+          <div class="filter-group-label">📍 エリア</div>
+          <div class="filter-scroll" id="area-filters">
+            <button class="area-btn active" data-area="all">全エリア</button>
+            <button class="area-btn" data-area="丸の内">丸の内</button>
+            <button class="area-btn" data-area="大手町">大手町</button>
+            <button class="area-btn" data-area="八重洲">八重洲</button>
+            <button class="area-btn" data-area="有楽町">有楽町</button>
+            <button class="area-btn" data-area="日比谷">日比谷</button>
+            <button class="area-btn" data-area="霞が関">霞が関</button>
+            <button class="area-btn" data-area="永田町">永田町</button>
+            <button class="area-btn" data-area="赤坂">赤坂</button>
+            <button class="area-btn" data-area="新橋">新橋</button>
+          </div>
+
+          <div class="filter-group-label">🍴 ジャンル</div>
+          <div class="filter-scroll" id="type-filters">
+            <button class="filter-btn active" data-type="all">すべて</button>
+            <button class="filter-btn" data-type="restaurant">レストラン</button>
+            <button class="filter-btn" data-type="cafe">カフェ</button>
+            <button class="filter-btn" data-type="fast_food">ファストフード</button>
+            <button class="filter-btn" data-type="bakery">ベーカリー</button>
+            <button class="filter-btn" data-type="bar">バー・パブ</button>
+          </div>
+
+          <div class="filter-group-label">🔴 混雑度</div>
+          <div class="filter-scroll" id="crowd-filters">
+            <button class="crowd-btn active" data-crowd="all">すべて</button>
+            <button class="crowd-btn" data-crowd="empty">空いている</button>
+            <button class="crowd-btn" data-crowd="quiet">やや空き</button>
+            <button class="crowd-btn" data-crowd="normal">普通</button>
+            <button class="crowd-btn" data-crowd="busy">混雑</button>
+            <button class="crowd-btn" data-crowd="very_busy">激混み</button>
+          </div>
+          {% endblock %}
+        </div>
+      </div>
+
+      <div id="list-count">{% block list_count_init %}読み込み中...{% endblock %}</div>
+      <ul id="restaurant-list"></ul>
+    </div>
+
+    <div id="detail-view" class="hidden">
+      <div id="detail-header">
+        <button id="back-btn">{% block back_btn_text %}← 一覧に戻る{% endblock %}</button>
+      </div>
+      <div id="detail-scroll">
+        <div id="detail-content"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── ローディング ── -->
+  <div id="loading-overlay" class="hidden">
+    <div class="spinner"></div>
+    <div class="loading-text">{% block loading_text_init %}読み込み中...{% endblock %}</div>
+  </div>
+
+  <!-- APP_CONFIG (i18n + city config) -->
+  <script>
+  window.APP_CONFIG = {% block app_config %}
+  {
+    city: "marunouchi",
+    center: [35.678, 139.760],
+    defaultZoom: 15,
+    areas: {
+      "丸の内": { s: 35.675, w: 139.753, n: 35.692, e: 139.768 },
+      "大手町": { s: 35.682, w: 139.757, n: 35.696, e: 139.775 },
+      "八重洲": { s: 35.673, w: 139.767, n: 35.690, e: 139.782 },
+      "有楽町": { s: 35.669, w: 139.756, n: 35.678, e: 139.767 },
+      "日比谷": { s: 35.667, w: 139.750, n: 35.678, e: 139.762 },
+      "霞が関": { s: 35.663, w: 139.742, n: 35.678, e: 139.756 },
+      "永田町": { s: 35.668, w: 139.736, n: 35.682, e: 139.750 },
+      "赤坂":   { s: 35.661, w: 139.726, n: 35.678, e: 139.742 },
+      "新橋":   { s: 35.660, w: 139.753, n: 35.671, e: 139.771 }
+    },
+    i18n: {
+      filterDefault:   "絞り込み",
+      filterSep:       "・",
+      updatePrefix:    "更新 ",
+      loadingMsg:      "データを読み込んでいます...",
+      refreshingMsg:   "データを更新しています...",
+      countFmt:        "{n} 件表示中 / 全 {total} 件",
+      congestionTitle: "現在の混雑状況",
+      congestionNote:  "※時間帯に基づく予測値（リアルタイムデータではありません）",
+      noInfo:          "詳細情報なし",
+      websiteLabel:    "ウェブサイト",
+      googleMapsLabel: "Googleマップで開く",
+      errorPrefix:     "エラー: ",
+      congestion: {
+        empty: "空いている", quiet: "やや空き", normal: "普通",
+        busy: "混雑", very_busy: "激混み"
+      },
+      typeLabels: {
+        restaurant: "レストラン", cafe: "カフェ",
+        fast_food: "ファストフード", bakery: "ベーカリー", bar: "バー"
+      }
+    }
+  }
+  {% endblock %};
+  </script>
+
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+  <script src="{{ url_for('static', filename='app.js') }}"></script>
+</body>
+</html>
