@@ -1,0 +1,155 @@
+<!DOCTYPE html>
+<html lang="{% block html_lang %}ja{% endblock %}">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+  <title>{% block page_title %}皇居周辺 ジムマップ{% endblock %}</title>
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+  <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}" />
+</head>
+<body class="gym-theme">
+
+  <!-- ── ヘッダー ── -->
+  <header id="app-header">
+    <div class="header-inner">
+      <h1 id="app-title">{% block header_title %}💪 皇居周辺 ジムマップ{% endblock %}</h1>
+      <div class="header-right">
+        <span id="update-badge">--:--</span>
+        <button id="refresh-btn" aria-label="refresh">↺</button>
+      </div>
+    </div>
+  </header>
+
+  <!-- ── ナビゲーションバー ── -->
+  <div id="nav-bar">
+    {% block nav_bar %}
+    <div class="nav-cities">
+      <a href="/" class="nav-city">🍴 丸の内</a>
+      <a href="/nagaoka" class="nav-city">🌸 長岡</a>
+      <a href="/gym" class="nav-city active">💪 ジム</a>
+    </div>
+    <div class="nav-langs">
+      <a href="/gym" class="nav-lang active">JP</a>
+      <a href="/gym/en" class="nav-lang">EN</a>
+      <a href="/gym/es" class="nav-lang">ES</a>
+    </div>
+    {% endblock %}
+  </div>
+
+  <!-- ── 地図 ── -->
+  <div id="map"></div>
+
+  <!-- ── 凡例 ── -->
+  <div id="legend">
+    <div class="legend-title">{% block legend_title %}💪 ジムマップ{% endblock %}</div>
+    <div class="legend-note">{% block legend_note %}© OpenStreetMap{% endblock %}</div>
+  </div>
+
+  <!-- ── ボトムシート ── -->
+  <div id="bottom-sheet">
+    <div id="sheet-handle">
+      <div id="handle-bar"></div>
+    </div>
+
+    <div id="sheet-content">
+      <div id="filter-bar">
+        <div class="search-row">
+          <input id="search-input" type="search"
+            placeholder="{% block search_ph %}ジム名で検索...{% endblock %}"
+            autocomplete="off" />
+          <button id="filter-toggle-btn">{% block filter_toggle_init %}絞り込み ▼{% endblock %}</button>
+        </div>
+
+        <div id="filter-panel">
+          {% block filter_panel %}
+          <div class="filter-group-label">📍 エリア</div>
+          <div class="filter-scroll" id="area-filters">
+            <button class="area-btn active" data-area="all">全エリア</button>
+            <button class="area-btn" data-area="大手町・丸の内">大手町・丸の内</button>
+            <button class="area-btn" data-area="日比谷・霞が関">日比谷・霞が関</button>
+            <button class="area-btn" data-area="九段下・北の丸">九段下・北の丸</button>
+            <button class="area-btn" data-area="麹町・永田町">麹町・永田町</button>
+            <button class="area-btn" data-area="千代田・神保町">千代田・神保町</button>
+          </div>
+
+          <div class="filter-group-label">🏋 ジャンル</div>
+          <div class="filter-scroll" id="type-filters">
+            <button class="filter-btn active" data-type="all">すべて</button>
+            <button class="filter-btn" data-type="fitness_centre">フィットネスジム</button>
+            <button class="filter-btn" data-type="sports_centre">スポーツセンター</button>
+            <button class="filter-btn" data-type="yoga_studio">ヨガスタジオ</button>
+            <button class="filter-btn" data-type="gym">ジム</button>
+          </div>
+          {% endblock %}
+        </div>
+      </div>
+
+      <div id="list-count">{% block list_count_init %}読み込み中...{% endblock %}</div>
+      <ul id="restaurant-list"></ul>
+    </div>
+
+    <div id="detail-view" class="hidden">
+      <div id="detail-header">
+        <button id="back-btn">{% block back_btn_text %}← 一覧に戻る{% endblock %}</button>
+      </div>
+      <div id="detail-scroll">
+        <div id="detail-content"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── ローディング ── -->
+  <div id="loading-overlay" class="hidden">
+    <div class="spinner"></div>
+    <div class="loading-text">{% block loading_text_init %}読み込み中...{% endblock %}</div>
+  </div>
+
+  <!-- GYM APP_CONFIG -->
+  <script>
+  window.APP_CONFIG = {% block app_config %}
+  {
+    center: [35.685, 139.752],
+    defaultZoom: 14,
+    areas: {
+      "大手町・丸の内": { s: 35.675, w: 139.748, n: 35.698, e: 139.778 },
+      "日比谷・霞が関": { s: 35.660, w: 139.738, n: 35.678, e: 139.762 },
+      "九段下・北の丸": { s: 35.685, w: 139.735, n: 35.705, e: 139.758 },
+      "麹町・永田町":   { s: 35.676, w: 139.727, n: 35.692, e: 139.747 },
+      "千代田・神保町": { s: 35.690, w: 139.752, n: 35.710, e: 139.778 }
+    },
+    i18n: {
+      filterDefault:  "絞り込み",
+      filterSep:      "・",
+      updatePrefix:   "更新 ",
+      loadingMsg:     "ジム情報を読み込んでいます...",
+      refreshingMsg:  "データを更新しています...",
+      countFmt:       "{n} 件表示中 / 全 {total} 件",
+      noInfo:         "詳細情報なし",
+      websiteLabel:   "ウェブサイト",
+      googleMapsLabel:"Googleマップで開く",
+      errorPrefix:    "エラー: ",
+      fee:            "有料",
+      freeFee:        "無料",
+      gymTypes: {
+        fitness_centre: "フィットネスジム",
+        sports_centre:  "スポーツセンター",
+        yoga_studio:    "ヨガスタジオ",
+        gym:            "ジム"
+      },
+      typeLabels: {
+        fitness_centre: "フィットネス",
+        sports_centre:  "スポーツセンター",
+        yoga_studio:    "ヨガ",
+        gym:            "ジム"
+      }
+    }
+  }
+  {% endblock %};
+  </script>
+
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+  <script src="{{ url_for('static', filename='gym.js') }}"></script>
+</body>
+</html>

@@ -1,0 +1,89 @@
+{% extends "gym_base.html" %}
+
+{% block html_lang %}es{% endblock %}
+{% block page_title %}Mapa de Gimnasios - Palacio Imperial{% endblock %}
+{% block header_title %}💪 Mapa de Gimnasios — Palacio Imperial{% endblock %}
+
+{% block nav_bar %}
+<div class="nav-cities">
+  <a href="/es" class="nav-city">🍴 Marunouchi</a>
+  <a href="/nagaoka" class="nav-city">🌸 Nagaoka</a>
+  <a href="/gym/es" class="nav-city active">💪 Gym</a>
+</div>
+<div class="nav-langs">
+  <a href="/gym" class="nav-lang">JP</a>
+  <a href="/gym/en" class="nav-lang">EN</a>
+  <a href="/gym/es" class="nav-lang active">ES</a>
+</div>
+{% endblock %}
+
+{% block legend_title %}💪 Gimnasios{% endblock %}
+{% block legend_note %}© OpenStreetMap{% endblock %}
+
+{% block search_ph %}Buscar gimnasios...{% endblock %}
+{% block filter_toggle_init %}Filtrar ▼{% endblock %}
+
+{% block filter_panel %}
+<div class="filter-group-label">📍 Zona</div>
+<div class="filter-scroll" id="area-filters">
+  <button class="area-btn active" data-area="all">Todas</button>
+  <button class="area-btn" data-area="大手町・丸の内">Otemachi/Marunouchi</button>
+  <button class="area-btn" data-area="日比谷・霞が関">Hibiya/Kasumigaseki</button>
+  <button class="area-btn" data-area="九段下・北の丸">Kudanshita/Kitanomaru</button>
+  <button class="area-btn" data-area="麹町・永田町">Kojimachi/Nagatacho</button>
+  <button class="area-btn" data-area="千代田・神保町">Chiyoda/Jimbocho</button>
+</div>
+
+<div class="filter-group-label">🏋 Tipo</div>
+<div class="filter-scroll" id="type-filters">
+  <button class="filter-btn active" data-type="all">Todo</button>
+  <button class="filter-btn" data-type="fitness_centre">Gimnasio</button>
+  <button class="filter-btn" data-type="sports_centre">Centro Deportivo</button>
+  <button class="filter-btn" data-type="yoga_studio">Estudio de Yoga</button>
+  <button class="filter-btn" data-type="gym">Gym</button>
+</div>
+{% endblock %}
+
+{% block list_count_init %}Cargando...{% endblock %}
+{% block back_btn_text %}← Volver a la lista{% endblock %}
+{% block loading_text_init %}Cargando...{% endblock %}
+
+{% block app_config %}
+{
+  center: [35.685, 139.752],
+  defaultZoom: 14,
+  areas: {
+    "大手町・丸の内": { s: 35.675, w: 139.748, n: 35.698, e: 139.778 },
+    "日比谷・霞が関": { s: 35.660, w: 139.738, n: 35.678, e: 139.762 },
+    "九段下・北の丸": { s: 35.685, w: 139.735, n: 35.705, e: 139.758 },
+    "麹町・永田町":   { s: 35.676, w: 139.727, n: 35.692, e: 139.747 },
+    "千代田・神保町": { s: 35.690, w: 139.752, n: 35.710, e: 139.778 }
+  },
+  i18n: {
+    filterDefault:  "Filtrar",
+    filterSep:      " · ",
+    updatePrefix:   "Actualizado ",
+    loadingMsg:     "Cargando datos de gimnasios...",
+    refreshingMsg:  "Actualizando datos...",
+    countFmt:       "Mostrando {n} de {total} gimnasios",
+    noInfo:         "Sin detalles disponibles",
+    websiteLabel:   "Sitio web",
+    googleMapsLabel:"Abrir en Google Maps",
+    errorPrefix:    "Error: ",
+    fee:            "De pago",
+    freeFee:        "Gratis",
+    gymTypes: {
+      fitness_centre: "Gimnasio",
+      sports_centre:  "Centro Deportivo",
+      yoga_studio:    "Estudio de Yoga",
+      gym:            "Gym"
+    },
+    typeLabels: {
+      fitness_centre: "Gimnasio",
+      sports_centre:  "Centro Deportivo",
+      yoga_studio:    "Yoga",
+      gym:            "Gym"
+    }
+  }
+}
+{% endblock %}

@@ -219,6 +219,106 @@ def valid_city(city):
     return city if city in CITY_CONFIG else "marunouchi"
 
 
+# ── ジムマップ ────────────────────────────────────────────────
+
+GYM_BBOX = "35.660,139.700,35.715,139.790"  # 皇居周辺エリア
+GYM_CACHE_FILE = Path(__file__).parent / "data_cache_gym.json"
+
+GYM_LEISURE_LABELS = {
+    "fitness_centre": "フィットネスジム",
+    "sports_centre":  "スポーツセンター",
+    "yoga_studio":    "ヨガスタジオ",
+    "gym":            "ジム",
+}
+
+GYM_SPORT_LABELS = {
+    "fitness":       "フィットネス",
+    "yoga":          "ヨガ",
+    "pilates":       "ピラティス",
+    "swimming":      "水泳",
+    "martial_arts":  "格闘技",
+    "weightlifting": "ウエイトトレーニング",
+    "climbing":      "クライミング",
+    "dance":         "ダンス",
+    "athletics":     "陸上",
+    "running":       "ランニング",
+    "tennis":        "テニス",
+    "badminton":     "バドミントン",
+    "gymnastics":    "体操",
+    "boxing":        "ボクシング",
+}
+
+GYM_OVERPASS_QUERY = f"""[out:json][timeout:60];
+(
+  node["leisure"~"fitness_centre|sports_centre|yoga_studio"]["name"]({GYM_BBOX});
+  way["leisure"~"fitness_centre|sports_centre|yoga_studio"]["name"]({GYM_BBOX});
+  node["amenity"="gym"]["name"]({GYM_BBOX});
+  way["amenity"="gym"]["name"]({GYM_BBOX});
+);
+out center;
+"""
+
+
+def fetch_gyms_from_overpass():
+    resp = requests.post(
+        OVERPASS_URL,
+        data={"data": GYM_OVERPASS_QUERY},
+        headers=HEADERS,
+        timeout=65,
+        verify=False,
+    )
+    resp.raise_for_status()
+    elements = resp.json().get("elements", [])
+
+    gyms = []
+    for el in elements:
+        tags = el.get("tags", {})
+        lat = el.get("lat") or el.get("center", {}).get("lat")
+        lon = el.get("lon") or el.get("center", {}).get("lon")
+        if not lat or not lon:
+            continue
+
+        gym_type = tags.get("leisure") or tags.get("amenity", "gym")
+        sport_raw = tags.get("sport", "")
+        sport_label = GYM_SPORT_LABELS.get(sport_raw.split(";")[0].strip(), sport_raw)
+
+        gyms.append({
+            "id":            el.get("id"),
+            "name":          tags.get("name", "名称不明"),
+            "name_en":       tags.get("name:en", ""),
+            "lat":           lat,
+            "lon":           lon,
+            "type":          gym_type,
+            "type_label":    GYM_LEISURE_LABELS.get(gym_type, gym_type),
+            "sport":         sport_label,
+            "opening_hours": tags.get("opening_hours", ""),
+            "phone":         tags.get("phone") or tags.get("contact:phone", ""),
+            "website":       tags.get("website") or tags.get("contact:website", ""),
+            "addr":          (tags.get("addr:full")
+                              or tags.get("addr:street", "")
+                              or tags.get("addr:neighbourhood", "")),
+            "fee":           tags.get("fee", ""),
+            "operator":      tags.get("operator", ""),
+        })
+
+    return gyms
+
+
+def get_gyms():
+    if GYM_CACHE_FILE.exists():
+        data = json.loads(GYM_CACHE_FILE.read_text(encoding="utf-8"))
+        if time.time() - data["timestamp"] < CACHE_TTL:
+            return data["gyms"]
+
+    gyms = fetch_gyms_from_overpass()
+    GYM_CACHE_FILE.write_text(
+        json.dumps({"timestamp": time.time(), "gyms": gyms},
+                   ensure_ascii=False, indent=2),
+        encoding="utf-8",
+    )
+    return gyms
+
+
 # ── ルート ────────────────────────────────────────────────────
 
 @app.route("/")
@@ -236,6 +336,18 @@ def index_es():
 @app.route("/nagaoka")
 def nagaoka():
     return render_template("nagaoka.html")
+
+@app.route("/gym")
+def gym_jp():
+    return render_template("gym.html")
+
+@app.route("/gym/en")
+def gym_en_route():
+    return render_template("gym_en.html")
+
+@app.route("/gym/es")
+def gym_es_route():
+    return render_template("gym_es.html")
 
 @app.route("/guide")
 def guide():
@@ -271,6 +383,25 @@ def api_congestion():
             "congestion": congestion,
             "labels":     CONGESTION_LABELS,
         })
+    except Exception as e:
+        return jsonify({"ok": False, "error": str(e)}), 500
+
+
+@app.route("/api/gyms")
+def api_gyms():
+    try:
+        data = get_gyms()
+        return jsonify({"ok": True, "count": len(data), "gyms": data})
+    except Exception as e:
+        return jsonify({"ok": False, "error": str(e)}), 500
+
+
+@app.route("/api/gyms/refresh")
+def api_gyms_refresh():
+    GYM_CACHE_FILE.unlink(missing_ok=True)
+    try:
+        data = get_gyms()
+        return jsonify({"ok": True, "count": len(data)})
     except Exception as e:
         return jsonify({"ok": False, "error": str(e)}), 500
 
